@@ -28,8 +28,8 @@
 #define MAX7219_PORT  GPIOA
 
 #define MAX7219_CS   GPIO_PIN_6
-#define MAX7219_CLK  GPIO_PIN_7
-#define MAX7219_DIN  GPIO_PIN_5
+#define MAX7219_CLK  GPIO_PIN_5
+#define MAX7219_DIN  GPIO_PIN_7
 
 /////////////////////////////////////////////////////////////////////
 
