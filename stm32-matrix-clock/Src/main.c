@@ -109,7 +109,7 @@ int main(void)
   //xxx add 470uF on Matrix VDD line
   HAL_Delay(200);  //delay for matrix power up
   matrix_init();
-  matrix_brightness(4);
+  matrix_brightness(1);
 
   i2c_init();
   ds3231_init();
@@ -138,7 +138,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
     rtc_read(rtcdata);
-
+/*
     matrix_clear_shift();
 
     sprintf(strbuff, "%2u", rtcdata[HOURS_REG]);
@@ -150,6 +150,10 @@ int main(void)
     matrix_print_shift(20,strbuff);
 
     matrix_copy_shift(0);
+*/
+    sprintf(strbuff, "%02u:%02u:%02u", rtcdata[HOURS_REG], rtcdata[MINUTES_REG], rtcdata[SECONDS_REG]);
+    matrix_print_small(0,strbuff);
+
 
     matrix_update();
 
