@@ -138,7 +138,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
     rtc_read(rtcdata);
-
+/*
     matrix_clear_shift();
 
     sprintf(strbuff, "%2u", rtcdata[HOURS_REG]);
@@ -150,10 +150,9 @@ int main(void)
     matrix_print_shift(20,strbuff);
 
     matrix_copy_shift(0);
-/*
+*/
     sprintf(strbuff, "%02u:%02u:%02u", rtcdata[HOURS_REG], rtcdata[MINUTES_REG], rtcdata[SECONDS_REG]);
     matrix_print_small(0,strbuff);
-*/
 
     matrix_update();
 
@@ -161,7 +160,7 @@ int main(void)
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
     HAL_Delay(30);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-    HAL_Delay(300);
+    HAL_Delay(150);
   }
   /* USER CODE END 3 */
 }
