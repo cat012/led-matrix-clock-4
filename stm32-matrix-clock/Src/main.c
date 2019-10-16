@@ -91,47 +91,74 @@ volatile uint8_t btncnt=0;
 volatile uint8_t hldcnt=0;
 
 
-const char DAY_1_EN[]="MONDAY";
-const char DAY_2_EN[]="TUESDAY";
-const char DAY_3_EN[]="WEDNESDAY";
-const char DAY_4_EN[]="THURSDAY";
-const char DAY_5_EN[]="FRIDAY";
-const char DAY_6_EN[]="SATURDAY";
-const char DAY_7_EN[]="SUNDAY";
+const char menustr[9][5]=
+  {
+  "MODE",
+  "BRIG",
+  "HOU",
+  "MIN",
+  "SEC",
+  "DAY",
+  "DAT",
+  "MON",
+  "YEA"
+  };
 
-const char MONTH_1_EN[]="JANUARY";
-const char MONTH_2_EN[]="FEBRUARY";
-const char MONTH_3_EN[]="MARCH";
-const char MONTH_4_EN[]="APRIL";
-const char MONTH_5_EN[]="MAY";
-const char MONTH_6_EN[]="JUNE";
-const char MONTH_7_EN[]="JULY";
-const char MONTH_8_EN[]="AUGUST";
-const char MONTH_9_EN[]="SEPTEMBER";
-const char MONTH_10_EN[]="OCTOBER";
-const char MONTH_11_EN[]="NOVEMBER";
-const char MONTH_12_EN[]="DECEMBER";
 
-const char DAY_1_RU[]="ПОНЕДЕЛЬНИК";
-const char DAY_2_RU[]="ВТОРНИК";
-const char DAY_3_RU[]="СРЕДА";
-const char DAY_4_RU[]="ЧЕТВЕРГ";
-const char DAY_5_RU[]="ПЯТНИЦА";
-const char DAY_6_RU[]="СУББОТА";
-const char DAY_7_RU[]="ВОСКРЕСЕНЬЕ";
+const char dayname[2][7][12]=
+  {
+    {
+    "MONDAY",
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+    "SATURDAY",
+    "SUNDAY"
+    },
+    {
+    "ПОНЕДЕЛЬНИК",
+    "ВТОРНИК",
+    "СРЕДА",
+    "ЧЕТВЕРГ",
+    "ПЯТНИЦА",
+    "СУББОТА",
+    "ВОСКРЕСЕНЬЕ"
+    }
+  };
 
-const char MONTH_1_RU[]="ЯНВАРЬ";
-const char MONTH_2_RU[]="ФЕВРАЛЬ";
-const char MONTH_3_RU[]="МАРТ";
-const char MONTH_4_RU[]="АПРЕЛЬ";
-const char MONTH_5_RU[]="МАЙ";
-const char MONTH_6_RU[]="ИЮНЬ";
-const char MONTH_7_RU[]="ИЮЛЬ";
-const char MONTH_8_RU[]="АВГУСТ";
-const char MONTH_9_RU[]="СЕНТЯБРЬ";
-const char MONTH_10_RU[]="ОКТЯБРЬ";
-const char MONTH_11_RU[]="НОЯБРЬ";
-const char MONTH_12_RU[]="ДЕКАБРЬ";
+
+const char monthname[2][12][10]=
+  {
+    {
+    "JANUARY",
+    "FEBRUARY",
+    "MARCH",
+    "APRIL",
+    "MAY",
+    "JUNE",
+    "JULY",
+    "AUGUST",
+    "SEPTEMBER",
+    "OCTOBER",
+    "NOVEMBER",
+    "DECEMBER"
+    },
+    {
+    "ЯНВАРЬ",
+    "ФЕВРАЛЬ",
+    "МАРТ",
+    "АПРЕЛЬ",
+    "МАЙ",
+    "ИЮНЬ",
+    "ИЮЛЬ",
+    "АВГУСТ",
+    "СЕНТЯБРЬ",
+    "ОКТЯБРЬ",
+    "НОЯБРЬ",
+    "ДЕКАБРЬ"
+    }
+  };
 
 /* USER CODE END PV */
 
@@ -248,90 +275,6 @@ static uint8_t button_check(void)
 
 
 //-----------------------------------------------------------------------------
-static const char * month_name(uint8_t lang, uint8_t num)
-    {
-    if(lang==0)
-        {
-        switch(num)
-            {
-            case 1: return MONTH_1_EN;
-            case 2: return MONTH_2_EN;
-            case 3: return MONTH_3_EN;
-            case 4: return MONTH_4_EN;
-            case 5: return MONTH_5_EN;
-            case 6: return MONTH_6_EN;
-            case 7: return MONTH_7_EN;
-            case 8: return MONTH_8_EN;
-            case 9: return MONTH_9_EN;
-            case 10: return MONTH_10_EN;
-            case 11: return MONTH_11_EN;
-            case 12: return MONTH_12_EN;
-            default: break;
-            }
-        }
-
-    if(lang==1)
-        {
-        switch(num)
-            {
-            case 1: return MONTH_1_RU;
-            case 2: return MONTH_2_RU;
-            case 3: return MONTH_3_RU;
-            case 4: return MONTH_4_RU;
-            case 5: return MONTH_5_RU;
-            case 6: return MONTH_6_RU;
-            case 7: return MONTH_7_RU;
-            case 8: return MONTH_8_RU;
-            case 9: return MONTH_9_RU;
-            case 10: return MONTH_10_RU;
-            case 11: return MONTH_11_RU;
-            case 12: return MONTH_12_RU;
-            default: break;
-            }
-        }
-
-    return '\0';
-    }
-
-
-//-----------------------------------------------------------------------------
-static const char * day_name(uint8_t lang, uint8_t num)
-    {
-    if(lang==0)
-        {
-        switch(num)
-            {
-            case 1: return DAY_1_EN;
-            case 2: return DAY_2_EN;
-            case 3: return DAY_3_EN;
-            case 4: return DAY_4_EN;
-            case 5: return DAY_5_EN;
-            case 6: return DAY_6_EN;
-            case 7: return DAY_7_EN;
-            default: break;
-            }
-        }
-
-    if(lang==1)
-        {
-        switch(num)
-            {
-            case 1: return DAY_1_RU;
-            case 2: return DAY_2_RU;
-            case 3: return DAY_3_RU;
-            case 4: return DAY_4_RU;
-            case 5: return DAY_5_RU;
-            case 6: return DAY_6_RU;
-            case 7: return DAY_7_RU;
-            default: break;
-            }
-        }
-
-    return '\0';
-    }
-
-
-//-----------------------------------------------------------------------------
 static void clock_normal_mode(void)
     {
     scrcnt=EVENT_PERIOD(500);
@@ -364,24 +307,22 @@ static void clock_shift_mode(uint8_t lang)
         rtc_read(rtcdata);
 
         int8_t tempmsb=ds3231_read_reg(0x11);
-        //uint8_t templsb=ds3231_read_reg(0x12);
 
         strbuffsum[0]=0; //"clear" the buffer
 
         sprintf(strbuff, "%u:%02u ", rtcdata[HOURS_REG] ,rtcdata[MINUTES_REG]);
         strcat(strbuffsum, strbuff);
 
-        strcat(strbuffsum, day_name(lang, rtcdata[DAY_REG]));
+        strcat(strbuffsum, dayname[lang][rtcdata[DAY_REG]-1]);
 
         sprintf(strbuff, " %u ", rtcdata[DATE_REG]);
         strcat(strbuffsum, strbuff);
 
-        strcat(strbuffsum, month_name(lang, rtcdata[MONTH_REG]));
+        strcat(strbuffsum, monthname[lang][rtcdata[MONTH_REG]-1]);
 
         sprintf(strbuff, " 20%02u", rtcdata[YEAR_REG]);
         strcat(strbuffsum, strbuff);
 
-        //sprintf(strbuff, " %+d.%u", tempmsb,(templsb>>6)*25);
         sprintf(strbuff, " %+d", tempmsb);
         strcat(strbuffsum, strbuff);
 
@@ -417,17 +358,19 @@ static void clock_settings_mode(uint8_t mode)
 
     matrix_clear_shift();
 
+    matrix_print_shift_compact(0,menustr[mode-1]);
+
     uint8_t t=0;
 
-    if(mode==1) { matrix_print_shift_compact(0,"MODE"); t=scrmode+1; }
-    if(mode==2) { matrix_print_shift_compact(0,"BRIG"); t=scrbright+1; }
-    if(mode==3) { matrix_print_shift_compact(0,"HOU"); t=rtcdata[HOURS_REG]; }
-    if(mode==4) { matrix_print_shift_compact(0,"MIN"); t=rtcdata[MINUTES_REG]; }
-    if(mode==5) { matrix_print_shift_compact(0,"SEC"); t=rtcdata[SECONDS_REG]; }
-    if(mode==6) { matrix_print_shift_compact(0,"DAY"); t=rtcdata[DAY_REG]; }
-    if(mode==7) { matrix_print_shift_compact(0,"DAT"); t=rtcdata[DATE_REG]; }
-    if(mode==8) { matrix_print_shift_compact(0,"MON"); t=rtcdata[MONTH_REG]; }
-    if(mode==9) { matrix_print_shift_compact(0,"YEA"); t=rtcdata[YEAR_REG]; }
+    if(mode==1) t=scrmode+1;
+    if(mode==2) t=scrbright+1;
+    if(mode==3) t=rtcdata[HOURS_REG];
+    if(mode==4) t=rtcdata[MINUTES_REG];
+    if(mode==5) t=rtcdata[SECONDS_REG];
+    if(mode==6) t=rtcdata[DAY_REG];
+    if(mode==7) t=rtcdata[DATE_REG];
+    if(mode==8) t=rtcdata[MONTH_REG];
+    if(mode==9) t=rtcdata[YEAR_REG];
 
     if(mode==1 || mode==2)
         {

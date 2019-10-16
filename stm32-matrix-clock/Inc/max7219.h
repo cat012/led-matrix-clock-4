@@ -67,7 +67,7 @@ void matrix_print_shift_compact(uint8_t xpos, const char *str);
 
 #define MATRIX_BUFF_SIZE  (8U*MAX7219_NUM)
 
-#define MATRIX_SHIFT_BUFF_SIZE  (10U*MATRIX_BUFF_SIZE)
+#define MATRIX_SHIFT_BUFF_SIZE  (16U*MATRIX_BUFF_SIZE)
 
 
 #define MAX7219_MAP_INTENSITY   0x0a
