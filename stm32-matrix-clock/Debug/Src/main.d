@@ -23,9 +23,13 @@ Src/main.o: ../Src/main.c \
  D:/stm32-workspace/stm32-matrix-clock/Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c_ex.h \
  D:/stm32-workspace/stm32-matrix-clock/Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pwr.h \
  D:/stm32-workspace/stm32-matrix-clock/Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pwr_ex.h \
+ D:/stm32-workspace/stm32-matrix-clock/Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim.h \
+ D:/stm32-workspace/stm32-matrix-clock/Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h \
+ D:/stm32-workspace/stm32-matrix-clock/Inc/at24c32.h \
+ D:/stm32-workspace/stm32-matrix-clock/Inc/main.h \
+ D:/stm32-workspace/stm32-matrix-clock/Inc/i2c.h \
  D:/stm32-workspace/stm32-matrix-clock/Inc/max7219.h \
- D:/stm32-workspace/stm32-matrix-clock/Inc/ds3231.h \
- D:/stm32-workspace/stm32-matrix-clock/Inc/i2c.h
+ D:/stm32-workspace/stm32-matrix-clock/Inc/ds3231.h
 
 D:/stm32-workspace/stm32-matrix-clock/Inc/main.h:
 
@@ -75,8 +79,16 @@ D:/stm32-workspace/stm32-matrix-clock/Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx
 
 D:/stm32-workspace/stm32-matrix-clock/Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pwr_ex.h:
 
+D:/stm32-workspace/stm32-matrix-clock/Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim.h:
+
+D:/stm32-workspace/stm32-matrix-clock/Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h:
+
+D:/stm32-workspace/stm32-matrix-clock/Inc/at24c32.h:
+
+D:/stm32-workspace/stm32-matrix-clock/Inc/main.h:
+
+D:/stm32-workspace/stm32-matrix-clock/Inc/i2c.h:
+
 D:/stm32-workspace/stm32-matrix-clock/Inc/max7219.h:
 
 D:/stm32-workspace/stm32-matrix-clock/Inc/ds3231.h:
-
-D:/stm32-workspace/stm32-matrix-clock/Inc/i2c.h:

@@ -26,7 +26,7 @@
 #define SCL_NULL  (HAL_GPIO_WritePin(I2C_PORT, I2C_SCL_PIN , GPIO_PIN_RESET))
 
 
-#define I2C_DELAY  asm("nop")
+#define I2C_DELAY  asm("nop"); asm("nop"); asm("nop"); asm("nop"); asm("nop")
 
 
 #define I2C_ACK   0

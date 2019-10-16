@@ -4,6 +4,7 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../Src/at24c32.c \
 ../Src/ds3231.c \
 ../Src/i2c.c \
 ../Src/main.c \
@@ -15,6 +16,7 @@ C_SRCS += \
 ../Src/system_stm32f0xx.c 
 
 OBJS += \
+./Src/at24c32.o \
 ./Src/ds3231.o \
 ./Src/i2c.o \
 ./Src/main.o \
@@ -26,6 +28,7 @@ OBJS += \
 ./Src/system_stm32f0xx.o 
 
 C_DEPS += \
+./Src/at24c32.d \
 ./Src/ds3231.d \
 ./Src/i2c.d \
 ./Src/main.d \

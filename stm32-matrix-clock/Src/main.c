@@ -29,6 +29,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include <string.h>
+
+#include "at24c32.h"
 #include "max7219.h"
 #include "ds3231.h"
 
@@ -42,6 +45,19 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define BOARD_LED_OFF     (HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET))
+#define BOARD_LED_ON      (HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET))
+#define BOARD_LED_TOGGLE  (HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_4))
+
+#define TMR3_OVF_FREQ    100U
+#define TMR3_PERIOD_MS   (1000U/TMR3_OVF_FREQ)
+#define EVENT_PERIOD(x)  ((x)/TMR3_PERIOD_MS)
+
+#define BRIGHTNESS_EE_ADDR  0
+#define SCREENMODE_EE_ADDR  1
+
+#define BUTTON_1  (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3))
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -50,6 +66,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
 
@@ -59,11 +76,69 @@ uint8_t newrtcdata[RTC_DATA_SIZE]={0};
 
 char strbuff[16]={'\0'};  //string buffer
 
+char strbuffsum[64]={'\0'};;  //string buffer
+
+uint8_t strbufflen=0;
+
+uint16_t scrpos=0xffff;
+
+uint8_t scrbright=0;
+uint8_t scrmode=0;
+
+volatile uint8_t scrcnt=0;
+
+volatile uint8_t btncnt=0;
+volatile uint8_t hldcnt=0;
+
+
+const char DAY_1_EN[]="MONDAY";
+const char DAY_2_EN[]="TUESDAY";
+const char DAY_3_EN[]="WEDNESDAY";
+const char DAY_4_EN[]="THURSDAY";
+const char DAY_5_EN[]="FRIDAY";
+const char DAY_6_EN[]="SATURDAY";
+const char DAY_7_EN[]="SUNDAY";
+
+const char MONTH_1_EN[]="JANUARY";
+const char MONTH_2_EN[]="FEBRUARY";
+const char MONTH_3_EN[]="MARCH";
+const char MONTH_4_EN[]="APRIL";
+const char MONTH_5_EN[]="MAY";
+const char MONTH_6_EN[]="JUNE";
+const char MONTH_7_EN[]="JULY";
+const char MONTH_8_EN[]="AUGUST";
+const char MONTH_9_EN[]="SEPTEMBER";
+const char MONTH_10_EN[]="OCTOBER";
+const char MONTH_11_EN[]="NOVEMBER";
+const char MONTH_12_EN[]="DECEMBER";
+
+const char DAY_1_RU[]="ПОНЕДЕЛЬНИК";
+const char DAY_2_RU[]="ВТОРНИК";
+const char DAY_3_RU[]="СРЕДА";
+const char DAY_4_RU[]="ЧЕТВЕРГ";
+const char DAY_5_RU[]="ПЯТНИЦА";
+const char DAY_6_RU[]="СУББОТА";
+const char DAY_7_RU[]="ВОСКРЕСЕНЬЕ";
+
+const char MONTH_1_RU[]="ЯНВАРЬ";
+const char MONTH_2_RU[]="ФЕВРАЛЬ";
+const char MONTH_3_RU[]="МАРТ";
+const char MONTH_4_RU[]="АПРЕЛЬ";
+const char MONTH_5_RU[]="МАЙ";
+const char MONTH_6_RU[]="ИЮНЬ";
+const char MONTH_7_RU[]="ИЮЛЬ";
+const char MONTH_8_RU[]="АВГУСТ";
+const char MONTH_9_RU[]="СЕНТЯБРЬ";
+const char MONTH_10_RU[]="ОКТЯБРЬ";
+const char MONTH_11_RU[]="НОЯБРЬ";
+const char MONTH_12_RU[]="ДЕКАБРЬ";
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -71,6 +146,303 @@ static void MX_GPIO_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+//=============================================================================
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim3)
+    {
+    if(scrcnt) scrcnt--;
+
+    if(btncnt) btncnt--;
+    if(hldcnt) hldcnt--;
+    }
+
+
+//-----------------------------------------------------------------------------
+static uint8_t button_check(void)
+    {
+    uint8_t k=0;
+
+    static uint8_t stage=0;
+
+    switch(stage)
+        {
+        case 0:
+            if(btncnt==0)
+                {
+                btncnt=EVENT_PERIOD(50);
+
+                if(!BUTTON_1)
+                    {
+                    stage=1;
+                    }
+                }
+            break;
+
+        case 1:
+            if(btncnt==0)
+                {
+                if(!BUTTON_1)
+                    {
+                    stage=2;
+                    hldcnt=255;
+                    }
+                else stage=0;
+                }
+            break;
+
+        case 2:
+            if(hldcnt<(255-(uint8_t)EVENT_PERIOD(500)))
+                {
+                k=2;
+                stage=4;
+                }
+            else if(btncnt==0)
+                {
+                btncnt=EVENT_PERIOD(50);
+
+                if(BUTTON_1)
+                    {
+                    stage=3;
+                    btncnt=EVENT_PERIOD(50);
+                    }
+                }
+            break;
+
+        case 3:
+            if(btncnt==0)
+                {
+                if(BUTTON_1)
+                    {
+                    stage=0;
+                    k=1;
+                    }
+                }
+            break;
+
+        case 4:
+            if(btncnt==0)
+                {
+                btncnt=EVENT_PERIOD(50);
+
+                if(!BUTTON_1)
+                    {
+                    stage=5;
+                    btncnt=EVENT_PERIOD(50);
+                    }
+                }
+            break;
+
+        case 5:
+            if(btncnt==0)
+                {
+                if(BUTTON_1)
+                    {
+                    stage=0;
+                    }
+                }
+            break;
+        }
+
+    return k;
+    }
+
+
+//-----------------------------------------------------------------------------
+static const char * month_name(uint8_t lang, uint8_t num)
+    {
+    if(lang==0)
+        {
+        switch(num)
+            {
+            case 1: return MONTH_1_EN;
+            case 2: return MONTH_2_EN;
+            case 3: return MONTH_3_EN;
+            case 4: return MONTH_4_EN;
+            case 5: return MONTH_5_EN;
+            case 6: return MONTH_6_EN;
+            case 7: return MONTH_7_EN;
+            case 8: return MONTH_8_EN;
+            case 9: return MONTH_9_EN;
+            case 10: return MONTH_10_EN;
+            case 11: return MONTH_11_EN;
+            case 12: return MONTH_12_EN;
+            default: break;
+            }
+        }
+
+    if(lang==1)
+        {
+        switch(num)
+            {
+            case 1: return MONTH_1_RU;
+            case 2: return MONTH_2_RU;
+            case 3: return MONTH_3_RU;
+            case 4: return MONTH_4_RU;
+            case 5: return MONTH_5_RU;
+            case 6: return MONTH_6_RU;
+            case 7: return MONTH_7_RU;
+            case 8: return MONTH_8_RU;
+            case 9: return MONTH_9_RU;
+            case 10: return MONTH_10_RU;
+            case 11: return MONTH_11_RU;
+            case 12: return MONTH_12_RU;
+            default: break;
+            }
+        }
+
+    return '\0';
+    }
+
+
+//-----------------------------------------------------------------------------
+static const char * day_name(uint8_t lang, uint8_t num)
+    {
+    if(lang==0)
+        {
+        switch(num)
+            {
+            case 1: return DAY_1_EN;
+            case 2: return DAY_2_EN;
+            case 3: return DAY_3_EN;
+            case 4: return DAY_4_EN;
+            case 5: return DAY_5_EN;
+            case 6: return DAY_6_EN;
+            case 7: return DAY_7_EN;
+            default: break;
+            }
+        }
+
+    if(lang==1)
+        {
+        switch(num)
+            {
+            case 1: return DAY_1_RU;
+            case 2: return DAY_2_RU;
+            case 3: return DAY_3_RU;
+            case 4: return DAY_4_RU;
+            case 5: return DAY_5_RU;
+            case 6: return DAY_6_RU;
+            case 7: return DAY_7_RU;
+            default: break;
+            }
+        }
+
+    return '\0';
+    }
+
+
+//-----------------------------------------------------------------------------
+static void clock_normal_mode(void)
+    {
+    scrcnt=EVENT_PERIOD(500);
+
+    rtc_read(rtcdata);
+
+    matrix_clear_shift();
+
+    sprintf(strbuff, "%2u", rtcdata[HOURS_REG]);
+    matrix_print_shift(0,strbuff);
+
+    matrix_char_shift(14, ':');
+
+    sprintf(strbuff, "%02u",rtcdata[MINUTES_REG]);
+    matrix_print_shift(20,strbuff);
+
+    matrix_copy_shift(0);
+    }
+
+
+//-----------------------------------------------------------------------------
+static void clock_shift_mode(uint8_t lang)
+    {
+    scrcnt=EVENT_PERIOD(30);
+
+    if(scrpos>(((uint16_t)strbufflen*7U)+MATRIX_BUFF_SIZE))
+        {
+        scrpos=0;
+
+        rtc_read(rtcdata);
+
+        int8_t tempmsb=ds3231_read_reg(0x11);
+        //uint8_t templsb=ds3231_read_reg(0x12);
+
+        strbuffsum[0]=0; //"clear" the buffer
+
+        sprintf(strbuff, "%u:%02u ", rtcdata[HOURS_REG] ,rtcdata[MINUTES_REG]);
+        strcat(strbuffsum, strbuff);
+
+        strcat(strbuffsum, day_name(lang, rtcdata[DAY_REG]));
+
+        sprintf(strbuff, " %u ", rtcdata[DATE_REG]);
+        strcat(strbuffsum, strbuff);
+
+        strcat(strbuffsum, month_name(lang, rtcdata[MONTH_REG]));
+
+        sprintf(strbuff, " 20%02u", rtcdata[YEAR_REG]);
+        strcat(strbuffsum, strbuff);
+
+        //sprintf(strbuff, " %+d.%u", tempmsb,(templsb>>6)*25);
+        sprintf(strbuff, " %+d", tempmsb);
+        strcat(strbuffsum, strbuff);
+
+        strbufflen=strlen(strbuffsum);
+
+        matrix_clear_shift();
+        matrix_print_shift(32,strbuffsum);
+        }
+
+    matrix_copy_shift(scrpos++);
+    }
+
+
+//-----------------------------------------------------------------------------
+static void clock_compact_mode(void)
+    {
+    scrcnt=EVENT_PERIOD(200);
+
+    rtc_read(rtcdata);
+
+    sprintf(strbuff, "%02u:%02u:%02u", rtcdata[HOURS_REG], rtcdata[MINUTES_REG], rtcdata[SECONDS_REG]);
+    matrix_print_small(0,strbuff);
+    }
+
+
+//-----------------------------------------------------------------------------
+static void clock_settings_mode(uint8_t mode)
+    {
+    if(mode==5) scrcnt=EVENT_PERIOD(200);
+    else scrcnt=EVENT_PERIOD(500);
+
+    rtc_read(rtcdata);
+
+    matrix_clear_shift();
+
+    uint8_t t=0;
+
+    if(mode==1) { matrix_print_shift_compact(0,"MODE"); t=scrmode+1; }
+    if(mode==2) { matrix_print_shift_compact(0,"BRIG"); t=scrbright+1; }
+    if(mode==3) { matrix_print_shift_compact(0,"HOU"); t=rtcdata[HOURS_REG]; }
+    if(mode==4) { matrix_print_shift_compact(0,"MIN"); t=rtcdata[MINUTES_REG]; }
+    if(mode==5) { matrix_print_shift_compact(0,"SEC"); t=rtcdata[SECONDS_REG]; }
+    if(mode==6) { matrix_print_shift_compact(0,"DAY"); t=rtcdata[DAY_REG]; }
+    if(mode==7) { matrix_print_shift_compact(0,"DAT"); t=rtcdata[DATE_REG]; }
+    if(mode==8) { matrix_print_shift_compact(0,"MON"); t=rtcdata[MONTH_REG]; }
+    if(mode==9) { matrix_print_shift_compact(0,"YEA"); t=rtcdata[YEAR_REG]; }
+
+    if(mode==1 || mode==2)
+        {
+        sprintf(strbuff, "%1u", t);
+        matrix_print_shift(32-5,strbuff);
+        }
+    else
+        {
+        sprintf(strbuff, "%02u", t);
+        matrix_print_shift((32-(5+5+2)),strbuff);
+        }
+
+    matrix_copy_shift(0);
+    }
+
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 /* USER CODE END 0 */
@@ -104,28 +476,26 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
-  //xxx add 470uF on Matrix VDD line
-  HAL_Delay(200);  //delay for matrix power up
+  HAL_TIM_Base_Start_IT(&htim3);
+
+  HAL_Delay(100);  //delay for matrix power up
   matrix_init();
-  matrix_brightness(1);
+
+  uint8_t setm=0;
 
   i2c_init();
   ds3231_init();
 
-  //set time for testing
-/*
-  newrtcdata[SECONDS_REG]=50;
-  newrtcdata[MINUTES_REG]=13;
-  newrtcdata[HOURS_REG]=22;
-  newrtcdata[DAY_REG]=5;
-  newrtcdata[DATE_REG]=11;
-  newrtcdata[MONTH_REG]=10;
-  newrtcdata[YEAR_REG]=19;
+  scrbright=ee_read(BRIGHTNESS_EE_ADDR)&0b00000111;
+  uint8_t oldbright=scrbright;
 
-  rtc_set(newrtcdata);
- */
+  matrix_brightness(scrbright);
+
+  scrmode=ee_read(SCREENMODE_EE_ADDR)&0b00000011;
+  uint8_t oldscrmode=scrmode;
 
   /* USER CODE END 2 */
 
@@ -137,30 +507,51 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    rtc_read(rtcdata);
-/*
-    matrix_clear_shift();
+    if(scrcnt==0)
+        {
+        if(setm==0)
+            {
+            if(scrmode==0) clock_normal_mode();
+            if(scrmode==1) clock_shift_mode(0);
+            if(scrmode==2) clock_shift_mode(1);
+            if(scrmode==3) clock_compact_mode();
+            }
+        else clock_settings_mode(setm);
 
-    sprintf(strbuff, "%2u", rtcdata[HOURS_REG]);
-    matrix_print_shift(0,strbuff);
+        matrix_update();
+        }
 
-    matrix_char_shift(14, ':');
+    switch(button_check())
+        {
+        case 2:
+            scrcnt=0;
+            scrpos=0xffff;
 
-    sprintf(strbuff, "%02u",rtcdata[MINUTES_REG]);
-    matrix_print_shift(20,strbuff);
+            if(setm==1) { if(scrmode!=oldscrmode) { oldscrmode=scrmode; ee_write(SCREENMODE_EE_ADDR,scrmode); setm=0; break; } }
+            if(setm==2) { if(scrbright!=oldbright) { oldbright=scrbright; ee_write(BRIGHTNESS_EE_ADDR,scrbright); setm=0; break; } }
+            if(++setm>9) setm=0;
+            break;
 
-    matrix_copy_shift(0);
-*/
-    sprintf(strbuff, "%02u:%02u:%02u", rtcdata[HOURS_REG], rtcdata[MINUTES_REG], rtcdata[SECONDS_REG]);
-    matrix_print_small(0,strbuff);
+        case 1:
+            if(setm==0) { break; }
 
-    matrix_update();
+            scrcnt=0;
+            scrpos=0xffff;
 
-    // blink
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-    HAL_Delay(30);
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-    HAL_Delay(150);
+            if(setm==1) { uint8_t tmp=scrmode; if(++tmp>3) tmp=0; scrmode=tmp; }
+            if(setm==2) { uint8_t tmp=scrbright; if(++tmp>7) tmp=0; matrix_brightness(tmp); scrbright=tmp; }
+            if(setm==3) { uint8_t tmp=rtcdata[HOURS_REG]; if(++tmp>23) tmp=0; rtc_set_hrs(tmp); }
+            if(setm==4) { uint8_t tmp=rtcdata[MINUTES_REG]; if(++tmp>59) tmp=0; rtc_set_min(tmp); }
+            if(setm==5) { rtc_set_sec(0); }
+            if(setm==6) { uint8_t tmp=rtcdata[DAY_REG]; if(++tmp>7) tmp=1; rtc_set_day(tmp); }
+            if(setm==7) { uint8_t tmp=rtcdata[DATE_REG]; if(++tmp>31) tmp=1; rtc_set_dat(tmp); }
+            if(setm==8) { uint8_t tmp=rtcdata[MONTH_REG]; if(++tmp>12) tmp=1; rtc_set_mon(tmp); }
+            if(setm==9) { uint8_t tmp=rtcdata[YEAR_REG]; if(++tmp>99) tmp=0; rtc_set_year(tmp); }
+            break;
+
+        case 0: break;
+        default: break;
+        }
   }
   /* USER CODE END 3 */
 }
@@ -198,6 +589,51 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 799;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 99;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -213,6 +649,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 
+  /*Configure GPIO pin : PA3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pin : PA4 */
   GPIO_InitStruct.Pin = GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
@@ -220,8 +662,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA5 PA6 PA7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
+  /*Configure GPIO pins : PA5 PA6 PA7 PA9 
+                           PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_9 
+                          |GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
