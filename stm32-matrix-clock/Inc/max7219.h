@@ -1,4 +1,4 @@
-// 4x 8x8 LED matrix + IC MAX7219
+// LED Dot Matrix
 //
 // file: max7219.h
 //
@@ -9,7 +9,7 @@
 //   7
 //-----------------
 //
-// 04-10-2019
+// 16-10-2019
 
 
 #ifndef MAX7219_H_
@@ -51,6 +51,8 @@ void matrix_clear(void);
 void matrix_fill(void);
 
 void matrix_update(void);
+
+void matrix_pixel(uint8_t x, uint8_t y, uint8_t on);
 
 void matrix_char_small(uint8_t xpos, uint8_t code);
 void matrix_print_small(uint8_t xpos, const char *str);

@@ -2,7 +2,7 @@
 //
 // RTC DS3231
 //
-// 11-oct-2019
+// 17-oct-2019
 //
 
 
@@ -18,21 +18,23 @@
 
 
 //DS3231 I2C address
-#define DS3231 0b11010000
-#define WRITE  0b00000000
-#define READ   0b00000001
+#define DS3231_I2C_WRITE    0b11010000
+#define DS3231_I2C_READ     0b11010001
 
 
-#define SECONDS_REG  0x00
-#define MINUTES_REG  0x01
-#define HOURS_REG    0x02
-#define DAY_REG      0x03
-#define DATE_REG     0x04
-#define MONTH_REG    0x05
-#define YEAR_REG     0x06
+#define DS3231_MAP_SECONDS  0x00
+#define DS3231_MAP_MINUTES  0x01
+#define DS3231_MAP_HOURS    0x02
+#define DS3231_MAP_DAY      0x03
+#define DS3231_MAP_DATE     0x04
+#define DS3231_MAP_MONTH    0x05
+#define DS3231_MAP_YEAR     0x06
 
-#define CONTROL_REG  0x0e
-#define STATUS_REG   0x0f
+#define DS3231_MAP_CONTROL  0x0e
+#define DS3231_MAP_STATUS   0x0f
+
+#define DS3231_MAP_MSBTEMP   0x11
+#define DS3231_MAP_LSBTEMP   0x12
 
 
 #define RTC_DATA_SIZE  0x07
@@ -51,7 +53,7 @@ void rtc_set_dat(uint8_t val);
 void rtc_set_mon(uint8_t val);
 void rtc_set_year(uint8_t val);
 
-void rtc_set(uint8_t *newrtcdata);
+//void rtc_set(uint8_t *newrtcdata);
 
 
 

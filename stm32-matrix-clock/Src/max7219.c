@@ -1,5 +1,6 @@
 // file: max7219.c
-// 04-10-2019
+//
+// 16-10-2019
 
 
 #include "max7219.h"
@@ -10,14 +11,6 @@ uint8_t matrixbuff[MATRIX_BUFF_SIZE]={0};
 uint8_t matrixtempbuff[MAX7219_NUM*2]={0};
 
 uint8_t matrixshiftbuff[MATRIX_SHIFT_BUFF_SIZE]={0};
-
-
-
-
-
-#define MATRIX_BUFF_PIXEL_ON(x,y)   (REG_BIT_SET(matrixbuff[(((x)%(MAX7219_NUM*8))+(((y)%8)*(MAX7219_NUM*8)))/8],7-((x)%8)))
-#define MATRIX_BUFF_PIXEL_OFF(x,y)  (REG_BIT_CLR(matrixbuff[(((x)%(MAX7219_NUM*8))+(((y)%8)*(MAX7219_NUM*8)))/8],7-((x)%8)))
-
 
 
 
@@ -128,6 +121,27 @@ void matrix_update(void)
 
 
 //-------------------------------------------------------------------------------------------------
+void matrix_pixel(uint8_t x, uint8_t y, uint8_t on)
+    {
+    if(on) (REG_BIT_SET(matrixbuff[((x%MATRIX_BUFF_SIZE)+((y%8)*MATRIX_BUFF_SIZE))/8],7-(x%8)));
+    else   (REG_BIT_CLR(matrixbuff[((x%MATRIX_BUFF_SIZE)+((y%8)*MATRIX_BUFF_SIZE))/8],7-(x%8)));
+    }
+
+
+/*
+//-------------------------------------------------------------------------------------------------
+void matrix_pixel(uint8_t x, uint8_t y, uint8_t on)
+    {
+    if((y<=7) && (x<=(MATRIX_BUFF_SIZE-1)))
+        {
+        if(on) (REG_BIT_SET(matrixbuff[(x+(y*MATRIX_BUFF_SIZE))/8],7-(x%8)));
+        else   (REG_BIT_CLR(matrixbuff[(x+(y*MATRIX_BUFF_SIZE))/8],7-(x%8)));
+        }
+    }
+ */
+
+
+//-------------------------------------------------------------------------------------------------
 void matrix_char_small(uint8_t xpos, uint8_t code)
     {
     uint8_t c=0;
@@ -142,7 +156,7 @@ void matrix_char_small(uint8_t xpos, uint8_t code)
         {
         for(uint8_t x=0; x<3; x++)
             {
-        	if(REG_BIT_IS_SET(font3x7[c*8+y],(2-x))) MATRIX_BUFF_PIXEL_ON((uint8_t)(x+xpos),y);
+        	if(REG_BIT_IS_SET(font3x7[c*8+y],(2-x))) matrix_pixel((uint8_t)(x+xpos),y,1);
             }
         }
     }
@@ -171,7 +185,7 @@ void matrix_copy_shift(uint16_t cpos)
         {
         for(uint8_t y=0; y<8; y++)
             {
-            if(REG_BIT_IS_SET(matrixshiftbuff[x+cpos],y)) MATRIX_BUFF_PIXEL_ON(x,y);
+            if(REG_BIT_IS_SET(matrixshiftbuff[x+cpos],y)) matrix_pixel(x,y,1);
             }
         }
     }

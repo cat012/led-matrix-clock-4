@@ -1,51 +1,54 @@
 // ds3231.c
 //
-// 11-oct-2019
+// 19-oct-2019
 //
 
 
 #include "ds3231.h"
 
 
+const uint8_t drmask[RTC_DATA_SIZE]=
+  {
+  0b01110000,  // 0 seconds
+  0b01110000,  // 1 minutes
+  0b00110000,  // 2 hours
+  0b00000000,  // 3 n/a
+  0b00110000,  // 4 date
+  0b00010000,  // 5 month
+  0b11110000   // 6 year
+  };
+
+
 //-----------------------------------------------------------------------------
-void rtc_conv_data(uint8_t *d, uint8_t m)  //d-data //m-mask
+static void rtc_conv_data(uint8_t *d, const uint8_t m)  //d-data //m-mask
     {
-    *d=(((((*d & m)>>4)<<1)+(((*d & m)>>4)<<3))+(*d & 0x0F));
+    *d=(((((*d & m)>>4)<<1)+(((*d & m)>>4)<<3))+(*d & 0b00001111));
     }
 
 
 //-----------------------------------------------------------------------------
 void rtc_read(uint8_t *data)
     {
-    i2c_start();
-    i2c_send_byte(DS3231 | WRITE);
+    i2c_start_addr(DS3231_I2C_WRITE);
 
-    i2c_send_byte(0x00);
+    i2c_send_byte(0x00);  //address
 
-    i2c_start();
+    i2c_start_addr(DS3231_I2C_READ);
 
-    i2c_send_byte(DS3231 | READ);
+    for(uint8_t i=0; i<(RTC_DATA_SIZE-1); i++) data[i] = i2c_read_byte(SW_I2C_ACK);
 
-    for(uint8_t i=0; i<(RTC_DATA_SIZE-1); i++) data[i] = i2c_read_byte(I2C_ACK);
-
-    data[RTC_DATA_SIZE-1] = i2c_read_byte(I2C_NACK);
+    data[RTC_DATA_SIZE-1] = i2c_read_byte(SW_I2C_NACK);
 
     i2c_stop();
 
-    rtc_conv_data(&data[SECONDS_REG], 0x70);
-    rtc_conv_data(&data[MINUTES_REG], 0x70);
-    rtc_conv_data(&data[HOURS_REG], 0x30);
-    rtc_conv_data(&data[DATE_REG], 0x30);
-    rtc_conv_data(&data[MONTH_REG], 0x10);
-    rtc_conv_data(&data[YEAR_REG], 0xF0);
+    for(uint8_t k=0; k<RTC_DATA_SIZE; k++) rtc_conv_data(&data[k], drmask[k]);
     }
 
 
 //-----------------------------------------------------------------------------
 void ds3231_write_reg(uint8_t addr, uint8_t val)
     {
-    i2c_start();
-    i2c_send_byte(DS3231 | WRITE);
+    i2c_start_addr(DS3231_I2C_WRITE);
 
     i2c_send_byte(addr);
     i2c_send_byte(val);
@@ -57,15 +60,13 @@ void ds3231_write_reg(uint8_t addr, uint8_t val)
 //-----------------------------------------------------------------------------
 uint8_t ds3231_read_reg(uint8_t addr)
     {
-    i2c_start();
-    i2c_send_byte(DS3231 | WRITE);
+    i2c_start_addr(DS3231_I2C_WRITE);
 
     i2c_send_byte(addr);
 
-    i2c_start();
-    i2c_send_byte(DS3231 | READ);
+    i2c_start_addr(DS3231_I2C_READ);
 
-    uint8_t data = i2c_read_byte(I2C_NACK);
+    uint8_t data = i2c_read_byte(SW_I2C_NACK);
 
     i2c_stop();
 
@@ -76,12 +77,33 @@ uint8_t ds3231_read_reg(uint8_t addr)
 //-----------------------------------------------------------------------------
 void ds3231_init(void)
     {
-    ds3231_write_reg(CONTROL_REG, 0b00011100);
-    ds3231_write_reg(STATUS_REG,  0b00000000);
+    ds3231_write_reg(DS3231_MAP_CONTROL, 0b00011100);
+    ds3231_write_reg(DS3231_MAP_STATUS,  0b00000000);
 
-    uint8_t temp = ds3231_read_reg(HOURS_REG);
-    ds3231_write_reg(HOURS_REG, temp & 0b10111111); //set 24-hour mode
+    uint8_t temp = ds3231_read_reg(DS3231_MAP_HOURS);
+    ds3231_write_reg(DS3231_MAP_HOURS, temp & 0b10111111); //set 24-hour mode
     }
+
+
+/*
+//-----------------------------------------------------------------------------
+int8_t ds3231_temperature(void)
+    {
+    int8_t tempmsb = ds3231_read_reg(DS3231_MAP_MSBTEMP);
+
+    return tempmsb;
+    }
+
+
+//-----------------------------------------------------------------------------
+int16_t ds3231_temperature2(void)
+    {
+    int16_t tempmsb=ds3231_read_reg(DS3231_MAP_MSBTEMP);
+    uint8_t templsb=ds3231_read_reg(DS3231_MAP_LSBTEMP);
+
+    return (tempmsb*100)+((templsb>>6)*25);
+    }
+*/
 
 
 //-----------------------------------------------------------------------------
@@ -133,15 +155,18 @@ void rtc_set_year(uint8_t val)
     }
 
 
+/*
 //-----------------------------------------------------------------------------
 void rtc_set(uint8_t *newrtcdata)
     {
-    rtc_set_sec(newrtcdata[SECONDS_REG]);
-    rtc_set_min(newrtcdata[MINUTES_REG]);
-    rtc_set_hrs(newrtcdata[HOURS_REG]);
-    rtc_set_day(newrtcdata[DAY_REG]);
-    rtc_set_dat(newrtcdata[DATE_REG]);
-    rtc_set_mon(newrtcdata[MONTH_REG]);
-    rtc_set_year(newrtcdata[YEAR_REG]);
+    rtc_set_sec(newrtcdata[DS3231_MAP_SECONDS]);
+    rtc_set_min(newrtcdata[DS3231_MAP_MINUTES]);
+    rtc_set_hrs(newrtcdata[DS3231_MAP_HOURS]);
+    rtc_set_day(newrtcdata[DS3231_MAP_DAY]);
+    rtc_set_dat(newrtcdata[DS3231_MAP_DATE]);
+    rtc_set_mon(newrtcdata[DS3231_MAP_MONTH]);
+    rtc_set_year(newrtcdata[DS3231_MAP_YEAR]);
     }
+*/
+
 

@@ -2,7 +2,7 @@
 //
 // AT24C32 4096*8 EEPROM
 //
-// (^^)~  23-05-2019
+// 17-10-2019
 //
 
 
@@ -18,11 +18,12 @@
 #include "i2c.h"
 
 
-#define EE_W  0b10101110
-#define EE_R  0b10101111
+#define AT24C32_I2C_WRITE  0b10101110
+#define AT24C32_I2C_READ   0b10101111
 
 
-#define EE_DELAY_WRITE  HAL_Delay(10)
+#define AT24C32_DELAY_WRITE  HAL_Delay(10)
+
 
 void ee_write(uint16_t addr, uint8_t data);
 uint8_t ee_read(uint16_t addr);

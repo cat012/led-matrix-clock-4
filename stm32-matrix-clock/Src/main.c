@@ -17,9 +17,15 @@
   ******************************************************************************
   */
 
-// stm32f030
+
+// stm32f030f4p6
+// sw4stm32
 // codepage: win-1251
-// 11-Oct-2019
+// 19-Oct-2019
+
+//   text    data     bss     dec
+//  11036     116    2300   13452
+
 
 /* USER CODE END Header */
 
@@ -45,18 +51,22 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define BOARD_LED_OFF     (HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET))
-#define BOARD_LED_ON      (HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET))
-#define BOARD_LED_TOGGLE  (HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_4))
+#define BOARD_LED_PORT    GPIOA
+#define BOARD_LED_PIN     GPIO_PIN_4
+#define BOARD_LED_OFF     (HAL_GPIO_WritePin(BOARD_LED_PORT, BOARD_LED_PIN, GPIO_PIN_SET))
+#define BOARD_LED_ON      (HAL_GPIO_WritePin(BOARD_LED_PORT, BOARD_LED_PIN, GPIO_PIN_RESET))
+#define BOARD_LED_TOGGLE  (HAL_GPIO_TogglePin(BOARD_LED_PORT, BOARD_LED_PIN))
+
+#define BUTTON_1_PORT   GPIOA
+#define BUTTON_1_PIN    GPIO_PIN_3
+#define BUTTON_1_PRESS  (!HAL_GPIO_ReadPin(BUTTON_1_PORT, BUTTON_1_PIN))
 
 #define TMR3_OVF_FREQ    100U
 #define TMR3_PERIOD_MS   (1000U/TMR3_OVF_FREQ)
-#define EVENT_PERIOD(x)  ((x)/TMR3_PERIOD_MS)
+#define EVENT_PERIOD(x)  ((x##U)/TMR3_PERIOD_MS)
 
-#define BRIGHTNESS_EE_ADDR  0
-#define SCREENMODE_EE_ADDR  1
-
-#define BUTTON_1  (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3))
+#define BRIGHTNESS_EE_ADDR  255
+#define SCREENMODE_EE_ADDR  254
 
 /* USER CODE END PD */
 
@@ -72,11 +82,8 @@ TIM_HandleTypeDef htim3;
 
 uint8_t rtcdata[RTC_DATA_SIZE]={0};  //ds3231 rtc data
 
-uint8_t newrtcdata[RTC_DATA_SIZE]={0};
-
-char strbuff[16]={'\0'};  //string buffer
-
-char strbuffsum[64]={'\0'};;  //string buffer
+char strbuff[16]={'\0'};  //string buffers
+char strbuffsum[64]={'\0'};
 
 uint8_t strbufflen=0;
 
@@ -95,9 +102,9 @@ const char menustr[9][5]=
   {
   "MODE",
   "BRIG",
-  "HOU",
-  "MIN",
   "SEC",
+  "MIN",
+  "HOU",
   "DAY",
   "DAT",
   "MON",
@@ -198,7 +205,7 @@ static uint8_t button_check(void)
                 {
                 btncnt=EVENT_PERIOD(50);
 
-                if(!BUTTON_1)
+                if(BUTTON_1_PRESS)
                     {
                     stage=1;
                     }
@@ -208,7 +215,7 @@ static uint8_t button_check(void)
         case 1:
             if(btncnt==0)
                 {
-                if(!BUTTON_1)
+                if(BUTTON_1_PRESS)
                     {
                     stage=2;
                     hldcnt=255;
@@ -227,7 +234,7 @@ static uint8_t button_check(void)
                 {
                 btncnt=EVENT_PERIOD(50);
 
-                if(BUTTON_1)
+                if(!BUTTON_1_PRESS)
                     {
                     stage=3;
                     btncnt=EVENT_PERIOD(50);
@@ -238,7 +245,7 @@ static uint8_t button_check(void)
         case 3:
             if(btncnt==0)
                 {
-                if(BUTTON_1)
+                if(!BUTTON_1_PRESS)
                     {
                     stage=0;
                     k=1;
@@ -251,7 +258,7 @@ static uint8_t button_check(void)
                 {
                 btncnt=EVENT_PERIOD(50);
 
-                if(!BUTTON_1)
+                if(BUTTON_1_PRESS)
                     {
                     stage=5;
                     btncnt=EVENT_PERIOD(50);
@@ -262,7 +269,7 @@ static uint8_t button_check(void)
         case 5:
             if(btncnt==0)
                 {
-                if(BUTTON_1)
+                if(!BUTTON_1_PRESS)
                     {
                     stage=0;
                     }
@@ -283,12 +290,12 @@ static void clock_normal_mode(void)
 
     matrix_clear_shift();
 
-    sprintf(strbuff, "%2u", rtcdata[HOURS_REG]);
+    sprintf(strbuff, "%2u", rtcdata[DS3231_MAP_HOURS]);
     matrix_print_shift(0,strbuff);
 
     matrix_char_shift(14, ':');
 
-    sprintf(strbuff, "%02u",rtcdata[MINUTES_REG]);
+    sprintf(strbuff, "%02u",rtcdata[DS3231_MAP_MINUTES]);
     matrix_print_shift(20,strbuff);
 
     matrix_copy_shift(0);
@@ -306,24 +313,22 @@ static void clock_shift_mode(uint8_t lang)
 
         rtc_read(rtcdata);
 
-        int8_t tempmsb=ds3231_read_reg(0x11);
+        strbuffsum[0]='\0';
 
-        strbuffsum[0]=0; //"clear" the buffer
-
-        sprintf(strbuff, "%u:%02u ", rtcdata[HOURS_REG] ,rtcdata[MINUTES_REG]);
+        sprintf(strbuff, "%u:%02u ", rtcdata[DS3231_MAP_HOURS] ,rtcdata[DS3231_MAP_MINUTES]);
         strcat(strbuffsum, strbuff);
 
-        strcat(strbuffsum, dayname[lang][rtcdata[DAY_REG]-1]);
+        strcat(strbuffsum, dayname[lang][rtcdata[DS3231_MAP_DAY]-1]);
 
-        sprintf(strbuff, " %u ", rtcdata[DATE_REG]);
+        sprintf(strbuff, " %u ", rtcdata[DS3231_MAP_DATE]);
         strcat(strbuffsum, strbuff);
 
-        strcat(strbuffsum, monthname[lang][rtcdata[MONTH_REG]-1]);
+        strcat(strbuffsum, monthname[lang][rtcdata[DS3231_MAP_MONTH]-1]);
 
-        sprintf(strbuff, " 20%02u", rtcdata[YEAR_REG]);
+        sprintf(strbuff, " 20%02u", rtcdata[DS3231_MAP_YEAR]);
         strcat(strbuffsum, strbuff);
 
-        sprintf(strbuff, " %+d", tempmsb);
+        sprintf(strbuff, " %+d", ds3231_read_reg(DS3231_MAP_MSBTEMP));
         strcat(strbuffsum, strbuff);
 
         strbufflen=strlen(strbuffsum);
@@ -343,7 +348,7 @@ static void clock_compact_mode(void)
 
     rtc_read(rtcdata);
 
-    sprintf(strbuff, "%02u:%02u:%02u", rtcdata[HOURS_REG], rtcdata[MINUTES_REG], rtcdata[SECONDS_REG]);
+    sprintf(strbuff, "%02u:%02u:%02u", rtcdata[DS3231_MAP_HOURS], rtcdata[DS3231_MAP_MINUTES], rtcdata[DS3231_MAP_SECONDS]);
     matrix_print_small(0,strbuff);
     }
 
@@ -351,8 +356,10 @@ static void clock_compact_mode(void)
 //-----------------------------------------------------------------------------
 static void clock_settings_mode(uint8_t mode)
     {
-    if(mode==5) scrcnt=EVENT_PERIOD(200);
-    else scrcnt=EVENT_PERIOD(500);
+    if(!mode) return;
+
+    if(mode==3) scrcnt=EVENT_PERIOD(200);  //200ms for mode 3 (seconds settings)
+    else scrcnt=EVENT_PERIOD(500);         //500ms for other modes
 
     rtc_read(rtcdata);
 
@@ -360,26 +367,14 @@ static void clock_settings_mode(uint8_t mode)
 
     matrix_print_shift_compact(0,menustr[mode-1]);
 
-    uint8_t t=0;
-
-    if(mode==1) t=scrmode+1;
-    if(mode==2) t=scrbright+1;
-    if(mode==3) t=rtcdata[HOURS_REG];
-    if(mode==4) t=rtcdata[MINUTES_REG];
-    if(mode==5) t=rtcdata[SECONDS_REG];
-    if(mode==6) t=rtcdata[DAY_REG];
-    if(mode==7) t=rtcdata[DATE_REG];
-    if(mode==8) t=rtcdata[MONTH_REG];
-    if(mode==9) t=rtcdata[YEAR_REG];
-
     if(mode==1 || mode==2)
         {
-        sprintf(strbuff, "%1u", t);
+        sprintf(strbuff, "%1u", (mode==1)?(scrmode+1):(scrbright+1));
         matrix_print_shift(32-5,strbuff);
         }
     else
         {
-        sprintf(strbuff, "%02u", t);
+        sprintf(strbuff, "%02u", rtcdata[mode-3]);
         matrix_print_shift((32-(5+5+2)),strbuff);
         }
 
@@ -429,7 +424,7 @@ int main(void)
 
   uint8_t setm=0;
 
-  i2c_init();
+//  i2c_init();
   ds3231_init();
 
   scrbright=ee_read(BRIGHTNESS_EE_ADDR)&0b00000111;
@@ -459,7 +454,8 @@ int main(void)
             if(scrmode==2) clock_shift_mode(1);
             if(scrmode==3) clock_compact_mode();
             }
-        else clock_settings_mode(setm);
+
+        clock_settings_mode(setm);
 
         matrix_update();
         }
@@ -483,13 +479,13 @@ int main(void)
 
             if(setm==1) { uint8_t tmp=scrmode; if(++tmp>3) tmp=0; scrmode=tmp; }
             if(setm==2) { uint8_t tmp=scrbright; if(++tmp>7) tmp=0; matrix_brightness(tmp); scrbright=tmp; }
-            if(setm==3) { uint8_t tmp=rtcdata[HOURS_REG]; if(++tmp>23) tmp=0; rtc_set_hrs(tmp); }
-            if(setm==4) { uint8_t tmp=rtcdata[MINUTES_REG]; if(++tmp>59) tmp=0; rtc_set_min(tmp); }
-            if(setm==5) { rtc_set_sec(0); }
-            if(setm==6) { uint8_t tmp=rtcdata[DAY_REG]; if(++tmp>7) tmp=1; rtc_set_day(tmp); }
-            if(setm==7) { uint8_t tmp=rtcdata[DATE_REG]; if(++tmp>31) tmp=1; rtc_set_dat(tmp); }
-            if(setm==8) { uint8_t tmp=rtcdata[MONTH_REG]; if(++tmp>12) tmp=1; rtc_set_mon(tmp); }
-            if(setm==9) { uint8_t tmp=rtcdata[YEAR_REG]; if(++tmp>99) tmp=0; rtc_set_year(tmp); }
+            if(setm==3) { rtc_set_sec(0); }
+            if(setm==4) { uint8_t tmp=rtcdata[DS3231_MAP_MINUTES]; if(++tmp>59) tmp=0; rtc_set_min(tmp); }
+            if(setm==5) { uint8_t tmp=rtcdata[DS3231_MAP_HOURS]; if(++tmp>23) tmp=0; rtc_set_hrs(tmp); }
+            if(setm==6) { uint8_t tmp=rtcdata[DS3231_MAP_DAY]; if(++tmp>7) tmp=1; rtc_set_day(tmp); }
+            if(setm==7) { uint8_t tmp=rtcdata[DS3231_MAP_DATE]; if(++tmp>31) tmp=1; rtc_set_dat(tmp); }
+            if(setm==8) { uint8_t tmp=rtcdata[DS3231_MAP_MONTH]; if(++tmp>12) tmp=1; rtc_set_mon(tmp); }
+            if(setm==9) { uint8_t tmp=rtcdata[DS3231_MAP_YEAR]; if(++tmp>99) tmp=0; rtc_set_year(tmp); }
             break;
 
         case 0: break;
@@ -590,7 +586,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|GPIO_PIN_9|GPIO_PIN_10, GPIO_PIN_SET);
 
   /*Configure GPIO pin : PA3 */
   GPIO_InitStruct.Pin = GPIO_PIN_3;
@@ -598,17 +594,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  /*Configure GPIO pins : PA4 PA9 PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_9|GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA5 PA6 PA7 PA9 
-                           PA10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_9 
-                          |GPIO_PIN_10;
+  /*Configure GPIO pins : PA5 PA6 PA7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
