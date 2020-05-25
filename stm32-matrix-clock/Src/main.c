@@ -258,7 +258,7 @@ static uint8_t button_check(void)
                 {
                 btncnt=EVENT_PERIOD(50);
 
-                if(BUTTON_1_PRESS)
+                if(!BUTTON_1_PRESS)
                     {
                     stage=5;
                     btncnt=EVENT_PERIOD(50);
